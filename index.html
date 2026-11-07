@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>کەلوپەل و ئامێرەکان — AWENA ASSETS</title>
+  
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              dark: '#0d1117',
+              card: '#161b22',
+              border: '#30363d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;700;900&display=swap');
+    body { font-family: 'Vazirmatn', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-brand-dark text-slate-100 min-h-screen pb-16 select-none">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-brand-card/95 backdrop-blur border-b border-brand-border px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center shadow-lg shadow-amber-500/20 font-black text-lg text-slate-950">
+        <i data-lucide="wrench" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-sm tracking-wide text-white">AWENA ASSETS</h1>
+        <p class="text-[10px] text-slate-400">سەرمایە، کەلوپەل و ئامێرەکانی دوکان</p>
+      </div>
+    </div>
+    
+    <!-- گۆڕینی نرخی ١٠٠ دۆلار بە دینار -->
+    <div class="flex items-center gap-1.5 bg-slate-900 border border-brand-border px-2 py-1 rounded-xl text-xs">
+      <span class="text-[10px] text-amber-400 font-bold">$100 =</span>
+      <input type="number" id="usdExchangeRateInput" onchange="updateExchangeRate(this.value)" class="w-16 bg-transparent text-white font-mono font-bold text-center text-xs focus:outline-none">
+      <span class="text-[9px] text-slate-400">د.ع</span>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto p-4 space-y-4">
+
+    <!-- کارتی گەورەی سەرمایەی کەلوپەلەکان (دینار + دۆلار) -->
+    <div class="bg-gradient-to-b from-brand-card to-slate-900 p-4 rounded-2xl border border-brand-border shadow-xl space-y-1.5 text-center">
+      <span class="text-xs text-slate-400 font-semibold block">کۆی سەرمایەی کەلوپەل و ئامێرەکان</span>
+      <div class="text-3xl font-black text-amber-400 tracking-tight" id="totalAssetsIQD">0 <span class="text-sm font-bold text-slate-400">د.ع</span></div>
+      <div class="text-xs font-mono font-bold text-emerald-400" id="totalAssetsUSD">≈ $0 دۆلار</div>
+      <span class="text-[10px] text-slate-500 block pt-0.5" id="totalItemsCountBadge">0 کەرەستە تۆمارکراوە</span>
+    </div>
+
+    <!-- پوختەی بەشەکان -->
+    <div class="space-y-1.5">
+      <span class="text-xs font-bold text-slate-400 px-1">سەرمایە بەپێی بەشەکان</span>
+      <div id="categorySummaryGrid" class="grid grid-cols-2 gap-2 text-xs"></div>
+    </div>
+
+    <!-- دوگمەی زیادکردنی کەرەستەی نوێ -->
+    <button onclick="openNewAssetModal()" class="w-full py-3.5 px-4 bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition">
+      <i data-lucide="plus-circle" class="w-5 h-5"></i>
+      <span>تۆمارکردنی ئامێر یان کەلوپەلی نوێ</span>
+    </button>
+
+    <!-- فلتەری پۆلێنەکان -->
+    <div class="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar text-xs">
+      <button onclick="filterByCategory('all')" data-category="all" class="cat-filter-btn px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-xl whitespace-nowrap shadow">هەمووی</button>
+      <button onclick="filterByCategory('ئامێر و مەکینەی گەورە')" data-category="ئامێر و مەکینەی گەورە" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">ئامێری گەورە</button>
+      <button onclick="filterByCategory('کۆستەرە و ئامێری پۆڵیش')" data-category="کۆستەرە و ئامێری پۆڵیش" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">کۆستەرەکانی پۆڵیش</button>
+      <button onclick="filterByCategory('ڕووناکی و لایتەکان')" data-category="ڕووناکی و لایتەکان" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">لایت و ڕووناکی</button>
+      <button onclick="filterByCategory('عەرەبانە، مێز و ڕەفە')" data-category="عەرەبانە، مێز و ڕەفە" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">مێز و عەرەبانە</button>
+      <button onclick="filterByCategory('کەلوپەلی دەستی')" data-category="کەلوپەلی دەستی" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">کەرەستەی دەستی</button>
+      <button onclick="filterByCategory('کەلوپەلی ئۆفیس')" data-category="کەلوپەلی ئۆفیس" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">ئۆفیس و کارگێڕی</button>
+      <button onclick="filterByCategory('تابلۆ و ڕیکلام')" data-category="تابلۆ و ڕیکلام" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">تابلۆ و فۆڵیا</button>
+      <button onclick="filterByCategory('هەمەجۆر')" data-category="هەمەجۆر" class="cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap">هەمەجۆر</button>
+    </div>
+
+    <!-- گەڕانی خێرا -->
+    <div class="relative">
+      <i data-lucide="search" class="w-4 h-4 absolute top-3.5 start-3 text-slate-400"></i>
+      <input type="text" oninput="handleSearch(this.value)" placeholder="گەڕان بۆ ئامێر، کۆستەرە، لایت، عەرەبانە..." 
+             class="w-full bg-brand-card border border-brand-border rounded-xl py-2.5 ps-9 pe-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400">
+    </div>
+
+    <!-- لیستی کەلوپەلەکان -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between px-1">
+        <h2 class="text-xs font-bold text-slate-400">سەرجەم کەلوپەل و ئامێرە تۆمارکراوەکان</h2>
+        <span class="text-[10px] text-emerald-400 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> هەور چالاکە
+        </span>
+      </div>
+      <div id="assetsListContainer" class="space-y-2"></div>
+    </div>
+  </main>
+
+  <!-- Modal بۆ تۆمارکردن و دەستکاری -->
+  <div id="assetModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-brand-card w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-brand-border shadow-2xl p-4 space-y-3.5 text-xs">
+      
+      <div class="flex items-center justify-between border-b border-brand-border pb-3">
+        <h3 class="font-bold text-base text-white" id="modalTitle">تۆمارکردنی کەلوپەل / ئامێر</h3>
+        <button onclick="closeAssetModal()" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form onsubmit="handleAssetSubmit(event)" class="space-y-3">
+        <div>
+          <label class="text-slate-300 font-semibold block mb-1">١. ناوی ئامێر یان کەلوپەل *</label>
+          <input type="text" id="asset_name" required placeholder="وەک: کۆستەرەی دوواڵ ئاکشن زڤایزەر، لایتی هێکسانۆن..." 
+                 class="w-full bg-slate-800 border border-brand-border rounded-xl p-3 text-white text-xs focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">٢. ژمارەی دانە *</label>
+            <input type="number" id="asset_qty" required value="1" min="1" 
+                   class="w-full bg-slate-800 border border-brand-border rounded-xl p-3 text-white font-mono font-bold focus:outline-none">
+          </div>
+          <div>
+            <label class="text-slate-300 font-semibold block mb-1">دراو</label>
+            <div class="grid grid-cols-2 gap-1 bg-slate-900 p-1 rounded-xl border border-brand-border">
+              <button type="button" onclick="setCurrency('IQD')" id="currBtnIQD" class="py-1.5 rounded-lg font-bold text-xs bg-amber-500 text-slate-950 transition">دینار</button>
+              <button type="button" onclick="setCurrency('USD')" id="currBtnUSD" class="py-1.5 rounded-lg font-bold text-xs text-slate-400 hover:text-white transition">دۆلار ($)</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-slate-300 font-semibold block mb-1" id="priceLabel">٣. نرخی تێچوو (بە دیناری عێراقی) *</label>
+          <input type="number" id="asset_price" required placeholder="وەک: 350000" 
+                 class="w-full bg-slate-800 border border-brand-border rounded-xl p-3 text-amber-400 font-black text-sm focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div>
+          <label class="text-slate-300 font-semibold block mb-1">٤. پۆلێن (بەش) *</label>
+          <select id="asset_category" required class="w-full bg-slate-800 border border-brand-border rounded-xl p-3 text-white text-xs focus:outline-none focus:border-amber-400">
+            <option value="ئامێر و مەکینەی گەورە">ئامێر و مەکینەی گەورە (وەتەر پەمپ، کۆمپرێسەر، ڤاکیۆم...)</option>
+            <option value="کۆستەرە و ئامێری پۆڵیش">کۆستەرە و ئامێری پۆڵیش (ڕۆتاری، دوواڵ ئاکشن، مینی...)</option>
+            <option value="ڕووناکی و لایتەکان">ڕووناکی و لایتەکان (هێکسانۆن، لایتی فەحس، ستاند...)</option>
+            <option value="عەرەبانە، مێز و ڕەفە">عەرەبانە، مێز و ڕەفە (مێزی پۆڵیش، عەرەبانە، ڕەفە...)</option>
+            <option value="کەلوپەلی دەستی">کەلوپەلی دەستی (بێخی فۆم، سۆندەی پەستان بەرز، سەتڵ...)</option>
+            <option value="کەلوپەلی ئۆفیس">کەلوپەلی ئۆفیس (سپلیت، کامێرای چاودێری، کورسی...)</option>
+            <option value="تابلۆ و ڕیکلام">تابلۆ و ڕیکلام (تابلۆی AWENA، فۆڵیا و ستیکەر...)</option>
+            <option value="هەمەجۆر">هەمەجۆر (کەلوپەلی تر)</option>
+          </select>
+        </div>
+
+        <button type="submit" id="submitBtn" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-amber-500/20 transition mt-2">
+          پاشەکەوتکردن لە سێرڤەر
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://yryszfvdokaplaweqatj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyeXN6ZnZkb2thcGxhd2VxYXRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMDQ3NjgsImV4cCI6MjEwODc4MDc2OH0.aMJQI1EvLr1Yf6vEzj9rDEsGzLZByyzZQWbQrqSb3WQ';
+
+    const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let assets = JSON.parse(localStorage.getItem('awena_workshop_assets_cache')) || [];
+    let editingId = null;
+    let selectedCategory = 'all';
+    let currentCurrency = 'IQD';
+    let usdRate = Number(localStorage.getItem('awena_usd_rate')) || 152000; // نرخی ١٠٠ دۆلار
+
+    const CATEGORIES = [
+      'ئامێر و مەکینەی گەورە',
+      'کۆستەرە و ئامێری پۆڵیش',
+      'ڕووناکی و لایتەکان',
+      'عەرەبانە، مێز و ڕەفە',
+      'کەلوپەلی دەستی',
+      'کەلوپەلی ئۆفیس',
+      'تابلۆ و ڕیکلام',
+      'هەمەجۆر'
+    ];
+
+    function updateExchangeRate(val) {
+      const num = Number(val);
+      if (num > 50000) {
+        usdRate = num;
+        localStorage.setItem('awena_usd_rate', usdRate);
+        renderUI();
+      }
+    }
+
+    function setCurrency(curr) {
+      currentCurrency = curr;
+      const btnIQD = document.getElementById('currBtnIQD');
+      const btnUSD = document.getElementById('currBtnUSD');
+      const label = document.getElementById('priceLabel');
+
+      if (curr === 'IQD') {
+        btnIQD.className = 'py-1.5 rounded-lg font-bold text-xs bg-amber-500 text-slate-950 transition';
+        btnUSD.className = 'py-1.5 rounded-lg font-bold text-xs text-slate-400 hover:text-white transition';
+        label.innerText = '٣. نرخی تێچوو (بە دیناری عێراقی) *';
+        document.getElementById('asset_price').placeholder = 'وەک: 350000';
+      } else {
+        btnUSD.className = 'py-1.5 rounded-lg font-bold text-xs bg-emerald-500 text-slate-950 transition';
+        btnIQD.className = 'py-1.5 rounded-lg font-bold text-xs text-slate-400 hover:text-white transition';
+        label.innerText = '٣. نرخی تێچوو (بە دۆلاری ئەمریکی $) *';
+        document.getElementById('asset_price').placeholder = 'وەک: 250';
+      }
+    }
+
+    async function loadAssetsFromCloud() {
+      try {
+        const { data, error } = await dbClient
+          .from('workshop_assets')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          assets = data;
+          localStorage.setItem('awena_workshop_assets_cache', JSON.stringify(assets));
+        }
+      } catch (e) {
+        console.log('پشتبەستن بە داتای لۆکاڵ:', e);
+      }
+      renderUI();
+    }
+
+    function convertToIQD(item) {
+      const p = Number(item.price) || 0;
+      const q = Number(item.qty) || 1;
+      if (item.currency === 'USD') {
+        return (p * (usdRate / 100)) * q;
+      }
+      return p * q;
+    }
+
+    function renderUI() {
+      document.getElementById('usdExchangeRateInput').value = usdRate;
+      updateTotals();
+      renderCategorySummary();
+      renderAssetsList();
+      lucide.createIcons();
+    }
+
+    function updateTotals() {
+      let totalIQD = 0;
+      assets.forEach(a => {
+        totalIQD += convertToIQD(a);
+      });
+
+      const totalUSD = Math.round((totalIQD / (usdRate / 100)));
+
+      document.getElementById('totalAssetsIQD').innerHTML = `${Math.round(totalIQD).toLocaleString()} <span class="text-sm font-bold text-slate-400">د.ع</span>`;
+      document.getElementById('totalAssetsUSD').innerText = `≈ $${totalUSD.toLocaleString()} دۆلار`;
+      document.getElementById('totalItemsCountBadge').innerText = `${assets.length} کەرەستە و ئامێر تۆمارکراوە`;
+    }
+
+    function renderCategorySummary() {
+      const container = document.getElementById('categorySummaryGrid');
+      const catTotals = {};
+      CATEGORIES.forEach(c => catTotals[c] = 0);
+
+      assets.forEach(a => {
+        const iqdVal = convertToIQD(a);
+        if (catTotals[a.category] !== undefined) {
+          catTotals[a.category] += iqdVal;
+        } else {
+          catTotals['هەمەجۆر'] = (catTotals['هەمەجۆر'] || 0) + iqdVal;
+        }
+      });
+
+      const activeCategories = CATEGORIES.filter(c => catTotals[c] > 0);
+
+      if (activeCategories.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-[11px] text-slate-500 py-2">هیچ ئامێرێک تۆمار نەکراوە</p>`;
+        return;
+      }
+
+      container.innerHTML = activeCategories.map(cat => `
+        <div onclick="filterByCategory('${cat}')" class="bg-brand-card p-2.5 rounded-xl border border-brand-border hover:border-amber-500/40 cursor-pointer transition">
+          <span class="text-[10px] text-slate-400 block">${cat}</span>
+          <span class="font-extrabold text-sm text-slate-200">${Math.round(catTotals[cat]).toLocaleString()} <span class="text-[9px] text-slate-500">د.ع</span></span>
+        </div>
+      `).join('');
+    }
+
+    function renderAssetsList(searchQuery = '') {
+      const container = document.getElementById('assetsListContainer');
+      let filtered = assets;
+
+      if (selectedCategory !== 'all') {
+        filtered = filtered.filter(a => a.category === selectedCategory);
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter(a => a.name.toLowerCase().includes(q));
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">هیچ ئامێرێک نەدۆزرایەوە</p>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const iqdTotal = convertToIQD(item);
+        const isUSD = item.currency === 'USD';
+
+        return `
+          <div class="bg-brand-card p-3 rounded-xl border border-brand-border flex items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center gap-1.5">
+                <h3 class="font-bold text-xs text-white">${item.name}</h3>
+                ${item.qty > 1 ? `<span class="bg-slate-800 text-amber-400 font-mono text-[10px] px-1.5 py-0.2 rounded font-bold">×${item.qty}</span>` : ''}
+              </div>
+              <span class="text-[10px] bg-slate-800 text-slate-300 border border-brand-border px-1.5 py-0.5 rounded">${item.category}</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div class="text-end">
+                <span class="font-black text-sm text-amber-400 block">${Math.round(iqdTotal).toLocaleString()} <span class="text-[9px] text-slate-500">د.ع</span></span>
+                ${isUSD ? `<span class="text-[10px] font-mono text-emerald-400 block font-bold">$${item.price * item.qty}</span>` : ''}
+              </div>
+              
+              <div class="flex items-center gap-1">
+                <button onclick="openEditAssetModal('${item.id}')" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-brand-border">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteAsset('${item.id}')" class="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterByCategory(cat) {
+      selectedCategory = cat;
+      document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+        if (btn.dataset.category === cat) {
+          btn.className = 'cat-filter-btn px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-xl whitespace-nowrap shadow';
+        } else {
+          btn.className = 'cat-filter-btn px-3 py-1.5 bg-brand-card border border-brand-border text-slate-300 font-medium rounded-xl whitespace-nowrap';
+        }
+      });
+      renderAssetsList();
+      lucide.createIcons();
+    }
+
+    function handleSearch(q) {
+      renderAssetsList(q);
+      lucide.createIcons();
+    }
+
+    function openNewAssetModal() {
+      editingId = null;
+      document.getElementById('modalTitle').innerText = 'تۆمارکردنی ئامێر یان کەلوپەل';
+      document.getElementById('asset_name').value = '';
+      document.getElementById('asset_qty').value = '1';
+      document.getElementById('asset_price').value = '';
+      document.getElementById('asset_category').value = 'ئامێر و مەکینەی گەورە';
+      setCurrency('IQD');
+      document.getElementById('assetModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function openEditAssetModal(id) {
+      const item = assets.find(a => a.id === id);
+      if (!item) return;
+
+      editingId = id;
+      document.getElementById('modalTitle').innerText = 'دەستکاریکردنی ئامێر';
+      document.getElementById('asset_name').value = item.name;
+      document.getElementById('asset_qty').value = item.qty || 1;
+      document.getElementById('asset_price').value = item.price;
+      document.getElementById('asset_category').value = item.category;
+      setCurrency(item.currency || 'IQD');
+      document.getElementById('assetModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAssetModal() {
+      document.getElementById('assetModal').classList.add('hidden');
+    }
+
+    async function handleAssetSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerText = 'خەریکی پاشەکەوتکردنە...';
+
+      const assetData = {
+        id: editingId || ('asset-' + Date.now()),
+        name: document.getElementById('asset_name').value.trim(),
+        qty: Number(document.getElementById('asset_qty').value) || 1,
+        currency: currentCurrency,
+        price: Number(document.getElementById('asset_price').value) || 0,
+        category: document.getElementById('asset_category').value
+      };
+
+      if (editingId) {
+        const idx = assets.findIndex(a => a.id === editingId);
+        if (idx !== -1) assets[idx] = assetData;
+      } else {
+        assets.unshift(assetData);
+      }
+
+      localStorage.setItem('awena_workshop_assets_cache', JSON.stringify(assets));
+      renderUI();
+      closeAssetModal();
+
+      await dbClient.from('workshop_assets').upsert(assetData);
+      btn.disabled = false;
+      btn.innerText = 'پاشەکەوتکردن لە سێرڤەر';
+    }
+
+    async function deleteAsset(id) {
+      if (!confirm('ئایا دڵنیایت لە سڕینەوەی ئەم ئامێرە؟')) return;
+      assets = assets.filter(a => a.id !== id);
+      localStorage.setItem('awena_workshop_assets_cache', JSON.stringify(assets));
+      renderUI();
+      await dbClient.from('workshop_assets').delete().eq('id', id);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAssetsFromCloud();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
