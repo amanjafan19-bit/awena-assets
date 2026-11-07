@@ -1,0 +1,19 @@
+{
+  "name": "کەلوپەل و ئامێرەکانی ئاوێنە",
+  "short_name": "ئامێرەکان",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "dir": "rtl",
+  "lang": "ckb",
+  "icons": [
+    {
+      "src": "https://ui-avatars.com/api/?name=AA&size=512&background=0d1117&color=f59e0b&bold=true&format=png&length=2",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
